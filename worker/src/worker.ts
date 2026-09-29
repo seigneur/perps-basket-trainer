@@ -176,8 +176,9 @@ async function handleTelegramWebhook(request: Request, env: Env): Promise<void> 
   // Handle /open command — send Mini App button
   const msg = body?.message;
   if (msg?.text === '/open' || msg?.text?.startsWith('/open ')) {
+    const userId = String(msg.from?.id ?? '');
+    if (userId !== env.TELEGRAM_OWNER_USER_ID) return;
     const chatId = String(msg.chat?.id ?? '');
-    if (chatId !== env.TELEGRAM_OWNER_CHAT_ID) return;
     await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -198,8 +199,9 @@ async function handleTelegramWebhook(request: Request, env: Env): Promise<void> 
   const query = body?.callback_query;
   if (!query) return;
 
+  const queryUserId = String(query.from?.id ?? '');
+  if (queryUserId !== env.TELEGRAM_OWNER_USER_ID) return;
   const chatId = String(query.message?.chat?.id ?? '');
-  if (chatId !== env.TELEGRAM_OWNER_CHAT_ID) return;
 
   const [action, proposalId] = (query.data ?? '').split(':');
   if (!proposalId) return;

@@ -35,9 +35,9 @@ export async function validateInitData(initData: string, botToken: string): Prom
   return userId ? { userId } : null;
 }
 
-export async function isOwner(request: Request, env: { TELEGRAM_BOT_TOKEN: string; TELEGRAM_OWNER_CHAT_ID: string }): Promise<boolean> {
+export async function isOwner(request: Request, env: { TELEGRAM_BOT_TOKEN: string; TELEGRAM_OWNER_USER_ID: string }): Promise<boolean> {
   const initData = request.headers.get('X-Telegram-Init-Data');
   if (!initData) return false;
   const result = await validateInitData(initData, env.TELEGRAM_BOT_TOKEN);
-  return result?.userId === env.TELEGRAM_OWNER_CHAT_ID;
+  return result?.userId === env.TELEGRAM_OWNER_USER_ID;
 }

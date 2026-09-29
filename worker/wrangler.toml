@@ -6,6 +6,7 @@ compatibility_flags = ["nodejs_compat"]
 [vars]
 MAIN_ADDRESS = "0x2042bb9c10bdbbbc09fa17c626ac8d53ab95958b"
 TELEGRAM_OWNER_CHAT_ID = "-4693697209"
+TELEGRAM_OWNER_USER_ID = "1374283728"
 HL_API_URL = "https://api.hyperliquid.xyz"
 ACTIVE_WINDOW_UTC = "0-12"
 
