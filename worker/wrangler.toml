@@ -4,7 +4,7 @@ compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-MAIN_ADDRESS = ""
+MAIN_ADDRESS = "0x2042bb9c10bdbbbc09fa17c626ac8d53ab95958b"
 TELEGRAM_OWNER_CHAT_ID = "-4693697209"
 HL_API_URL = "https://api.hyperliquid.xyz"
 ACTIVE_WINDOW_UTC = "0-12"
