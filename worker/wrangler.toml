@@ -10,17 +10,14 @@ HL_API_URL = "https://api.hyperliquid.xyz"
 ACTIVE_WINDOW_UTC = "0-12"
 
 [triggers]
-crons = [
-  "*/15 0-11 * * *",
-  "0 12 * * *",
-  "0 0,4,8,12 * * *"
-]
+crons = ["*/15 * * * *"]
 
 [[d1_databases]]
 binding = "DB"
 database_name = "perps-basket-trainer"
-database_id = "REPLACE_AFTER_CREATE"
+database_id = "276588c4-2a2a-45ca-a721-64825f3e89aa"
 
-[[kv_namespaces]]
-binding = "CACHE"
-id = "REPLACE_AFTER_CREATE"
+# KV namespace — add id once a token with KV Storage Edit permission is available
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "REPLACE_AFTER_CREATE"

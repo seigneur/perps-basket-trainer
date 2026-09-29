@@ -55,17 +55,23 @@ async function buildSummary(env: Env, isOvernight: boolean): Promise<string> {
 }
 
 export default {
-  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const now = new Date();
     const utcH = now.getUTCHours();
     const utcM = now.getUTCMinutes();
+    const inWindow = utcH >= 0 && utcH < 12; // 08:00–20:00 SGT = 00:00–12:00 UTC
 
-    // Always check liquidation proximity
+    // Liq alert — always, any time (one emergency overnight alert is acceptable per spec)
     if (env.MAIN_ADDRESS) {
       ctx.waitUntil(runLiqAlert(env).catch(e => console.error('liq alert err', e)));
     }
 
-    // Summary message (every 4h at xx:00 UTC)
+    // Snapshot — only during active window
+    if (inWindow && env.MAIN_ADDRESS) {
+      ctx.waitUntil(runSnapshot(env).catch(e => console.error('snapshot err', e)));
+    }
+
+    // 4-hour summary — at 00, 04, 08, 12 UTC (SGT 08, 12, 16, 20)
     if (isSummaryRun(utcH, utcM)) {
       ctx.waitUntil((async () => {
         try {
@@ -75,11 +81,7 @@ export default {
           console.error('summary err', e);
         }
       })());
-      return; // Summary-only runs don't also snapshot
     }
-
-    // Snapshot run (every 15 min during window)
-    ctx.waitUntil(runSnapshot(env).catch(e => console.error('snapshot err', e)));
   },
 
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -87,13 +89,19 @@ export default {
 
     // ── Public API ──────────────────────────────────────────────
     if (url.pathname === '/api/state') {
-      const cached = await env.CACHE.get('latest');
+      const cached = env.CACHE ? await env.CACHE.get('latest') : null;
       if (cached) {
         return new Response(cached, {
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' },
         });
       }
-      return Response.json({ error: 'no data yet' }, { status: 404 });
+      // Fall back to D1 latest snapshot
+      const [calm, cockpit] = await Promise.all([
+        env.DB.prepare('SELECT * FROM snapshots WHERE book = ? ORDER BY ts DESC LIMIT 1').bind('calm').first(),
+        env.DB.prepare('SELECT * FROM snapshots WHERE book = ? ORDER BY ts DESC LIMIT 1').bind('cockpit').first(),
+      ]);
+      if (!calm && !cockpit) return Response.json({ error: 'no data yet' }, { status: 404 });
+      return Response.json({ calm, cockpit });
     }
 
     if (url.pathname === '/api/history') {

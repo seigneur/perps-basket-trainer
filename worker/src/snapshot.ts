@@ -2,7 +2,7 @@ import { fetchAccountState, fetchMarketMeta, fetchRecentFunding } from './venue'
 
 export interface Env {
   DB: D1Database;
-  CACHE: KVNamespace;
+  CACHE?: KVNamespace;
   TELEGRAM_BOT_TOKEN: string;
   TELEGRAM_OWNER_CHAT_ID: string;
   HL_API_URL: string;
@@ -71,15 +71,17 @@ export async function runSnapshot(env: Env): Promise<void> {
     ).run();
   }
 
-  // Cache latest state for UI (30s TTL)
-  const statePayload = {
-    ts,
-    account: { equity: account.equity, marginUsed: account.marginUsed, marginFree: account.marginFree },
-    positions: account.positions,
-    markets,
-    snapshots: snapshot,
-  };
-  await env.CACHE.put('latest', JSON.stringify(statePayload), { expirationTtl: 30 });
+  // Cache latest state for UI (30s TTL) — only if KV binding is configured
+  if (env.CACHE) {
+    const statePayload = {
+      ts,
+      account: { equity: account.equity, marginUsed: account.marginUsed, marginFree: account.marginFree },
+      positions: account.positions,
+      markets,
+      snapshots: snapshot,
+    };
+    await env.CACHE.put('latest', JSON.stringify(statePayload), { expirationTtl: 30 });
+  }
 
   console.log(`Snapshot OK — equity ${account.equity} USDC, ${account.positions.length} positions`);
 }
