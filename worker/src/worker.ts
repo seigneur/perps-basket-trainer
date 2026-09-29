@@ -6,6 +6,18 @@ export type { Env };
 
 const PWA_URL = 'https://perps-basket-trainer.pages.dev';
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': PWA_URL,
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Telegram-Init-Data',
+};
+
+function withCors(res: Response): Response {
+  const r = new Response(res.body, res);
+  Object.entries(CORS_HEADERS).forEach(([k, v]) => r.headers.set(k, v));
+  return r;
+}
+
 const UTC_SUMMARY_HOURS = [0, 4, 8, 12]; // SGT 08:00, 12:00, 16:00, 20:00
 
 function isSummaryRun(utcHour: number, utcMin: number): boolean {
@@ -89,7 +101,14 @@ export default {
 
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+    return withCors(await handleFetch(request, url, env, ctx));
+  },
+};
 
+async function handleFetch(request: Request, url: URL, env: Env, ctx: ExecutionContext): Promise<Response> {
     // ── Public API ──────────────────────────────────────────────
     if (url.pathname === '/api/state') {
       const cached = env.CACHE ? await env.CACHE.get('latest') : null;
@@ -167,8 +186,7 @@ export default {
     }
 
     return new Response('Perps Basket Trainer\n\nRoutes: /api/state /api/history /api/positions /health', { status: 200 });
-  },
-};
+}
 
 async function handleTelegramWebhook(request: Request, env: Env): Promise<void> {
   const body = await request.json() as any;
