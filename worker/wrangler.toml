@@ -1,0 +1,26 @@
+name = "perps-basket-trainer"
+main = "src/worker.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+MAIN_ADDRESS = ""
+TELEGRAM_OWNER_CHAT_ID = "-4693697209"
+HL_API_URL = "https://api.hyperliquid.xyz"
+ACTIVE_WINDOW_UTC = "0-12"
+
+[triggers]
+crons = [
+  "*/15 0-11 * * *",
+  "0 12 * * *",
+  "0 0,4,8,12 * * *"
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "perps-basket-trainer"
+database_id = "REPLACE_AFTER_CREATE"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "REPLACE_AFTER_CREATE"
