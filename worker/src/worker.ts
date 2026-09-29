@@ -1,7 +1,10 @@
 import { runSnapshot, runLiqAlert, type Env } from './snapshot';
 import { sendTelegram, formatSummary } from './telegram';
+import { isOwner } from './twa';
 
 export type { Env };
+
+const PWA_URL = 'https://perps-basket-trainer.pages.dev';
 
 const UTC_SUMMARY_HOURS = [0, 4, 8, 12]; // SGT 08:00, 12:00, 16:00, 20:00
 
@@ -132,6 +135,27 @@ export default {
       return new Response('ok');
     }
 
+    // ── Owner-only controls (TWA-gated) ─────────────────────────
+    if (url.pathname.startsWith('/api/control/')) {
+      if (!(await isOwner(request, env))) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 });
+      const body = await request.json() as any;
+
+      if (url.pathname === '/api/control/leverage') {
+        // Phase 3: update leverage + create proposal
+        return Response.json({ ok: true, message: 'Leverage proposal queued — Phase 3' });
+      }
+      if (url.pathname === '/api/control/asset') {
+        return Response.json({ ok: true, message: 'Asset proposal queued — Phase 3' });
+      }
+      if (url.pathname === '/api/control/close') {
+        return Response.json({ ok: true, message: 'Close proposal queued — Phase 3' });
+      }
+      return Response.json({ error: 'Unknown control' }, { status: 404 });
+    }
+
     // ── Manual triggers (dev) ───────────────────────────────────
     if (url.pathname === '/run/snapshot') {
       await runSnapshot(env);
@@ -148,6 +172,29 @@ export default {
 
 async function handleTelegramWebhook(request: Request, env: Env): Promise<void> {
   const body = await request.json() as any;
+
+  // Handle /open command — send Mini App button
+  const msg = body?.message;
+  if (msg?.text === '/open' || msg?.text?.startsWith('/open ')) {
+    const chatId = String(msg.chat?.id ?? '');
+    if (chatId !== env.TELEGRAM_OWNER_CHAT_ID) return;
+    await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: 'Open Perps Basket Trainer:',
+        reply_markup: {
+          inline_keyboard: [[{
+            text: 'Open Dashboard',
+            web_app: { url: PWA_URL },
+          }]],
+        },
+      }),
+    });
+    return;
+  }
+
   const query = body?.callback_query;
   if (!query) return;
 

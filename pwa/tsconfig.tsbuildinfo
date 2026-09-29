@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/lib/api.ts","./src/lib/twa.ts","./src/lib/useData.ts","./src/panels/CalmPanel.tsx","./src/panels/CockpitPanel.tsx"],"version":"5.9.3"}
