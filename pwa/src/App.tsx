@@ -24,7 +24,7 @@ export default function App() {
   return (
     <div className="flex flex-col h-full overflow-hidden bg-[#0d0d0f]">
       {/* Status bar */}
-      <div className="flex items-center justify-between px-4 py-1.5 border-b border-white/[0.05]">
+      <div className="flex items-center justify-between px-4 border-b border-white/[0.05]" style={{ paddingTop: 'max(6px, env(safe-area-inset-top))', paddingBottom: '6px' }}>
         <div className="text-[10px] text-white/25 tracking-widest uppercase">Perps Basket</div>
         <div className="flex items-center gap-2">
           {error && <div className="text-[10px] text-red-400/70">offline</div>}
