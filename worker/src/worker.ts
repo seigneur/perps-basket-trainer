@@ -117,13 +117,27 @@ async function handleFetch(request: Request, url: URL, env: Env, ctx: ExecutionC
           headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=15' },
         });
       }
-      // Fall back to D1 latest snapshot
-      const [calm, cockpit] = await Promise.all([
-        env.DB.prepare('SELECT * FROM snapshots WHERE book = ? ORDER BY ts DESC LIMIT 1').bind('calm').first(),
-        env.DB.prepare('SELECT * FROM snapshots WHERE book = ? ORDER BY ts DESC LIMIT 1').bind('cockpit').first(),
+      // Fall back to D1 latest snapshot + positions
+      const [calm, cockpit, posRows] = await Promise.all([
+        env.DB.prepare('SELECT * FROM snapshots WHERE book = ? ORDER BY ts DESC LIMIT 1').bind('calm').first<any>(),
+        env.DB.prepare('SELECT * FROM snapshots WHERE book = ? ORDER BY ts DESC LIMIT 1').bind('cockpit').first<any>(),
+        env.DB.prepare('SELECT * FROM positions WHERE ts = (SELECT MAX(ts) FROM positions)').all<any>(),
       ]);
       if (!calm && !cockpit) return Response.json({ error: 'no data yet' }, { status: 404 });
-      return Response.json({ calm, cockpit });
+      const positions = posRows.results ?? [];
+      const markets = positions.map((p: any) => ({
+        asset: p.asset,
+        markPx: p.mark_px,
+        oraclePx: p.mark_px,
+        fundingRateHourly: p.funding_rate_hourly,
+        openInterest: 0,
+      }));
+      const totalEquity = (calm?.equity_usd ?? 0) + (cockpit?.equity_usd ?? 0);
+      const marginUsed = positions.reduce((sum: number, p: any) => {
+        return sum + (Math.abs(p.size) * p.entry_px) / Math.max(p.leverage, 1);
+      }, 0);
+      const account = { equity: totalEquity, marginUsed, marginFree: totalEquity - marginUsed };
+      return Response.json({ calm, cockpit, positions, markets, account });
     }
 
     if (url.pathname === '/api/history') {
