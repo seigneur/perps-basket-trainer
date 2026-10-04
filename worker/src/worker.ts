@@ -1,4 +1,4 @@
-import { runSnapshot, runLiqAlert, type Env } from './snapshot';
+import { runSnapshot, runLiqAlert, isInWindow, type Env } from './snapshot';
 import { sendTelegram, formatSummary } from './telegram';
 import { isOwner } from './twa';
 
@@ -74,15 +74,13 @@ export default {
     const now = new Date();
     const utcH = now.getUTCHours();
     const utcM = now.getUTCMinutes();
-    const inWindow = utcH >= 0 && utcH < 12; // 08:00–20:00 SGT = 00:00–12:00 UTC
-
-    // Liq alert — always, any time (one emergency overnight alert is acceptable per spec)
+    // Liq alert — always, any time
     if (env.MAIN_ADDRESS) {
       ctx.waitUntil(runLiqAlert(env).catch(e => console.error('liq alert err', e)));
     }
 
-    // Snapshot — only during active window
-    if (inWindow && env.MAIN_ADDRESS) {
+    // Snapshot — only during active window (controlled by ACTIVE_WINDOW_UTC env var)
+    if (isInWindow(env) && env.MAIN_ADDRESS) {
       ctx.waitUntil(runSnapshot(env).catch(e => console.error('snapshot err', e)));
     }
 
