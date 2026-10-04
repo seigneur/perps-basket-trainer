@@ -15,8 +15,9 @@ export interface Env {
 
 const BOOKS = ['calm', 'cockpit'] as const;
 
-function isInWindow(env: Env): boolean {
+export function isInWindow(env: Env): boolean {
   const [startH, endH] = env.ACTIVE_WINDOW_UTC.split('-').map(Number);
+  if (endH >= 24) return true;
   const nowH = new Date().getUTCHours();
   return nowH >= startH && nowH < endH;
 }
